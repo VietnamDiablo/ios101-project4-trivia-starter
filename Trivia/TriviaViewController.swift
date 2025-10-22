@@ -17,16 +17,23 @@ class TriviaViewController: UIViewController {
   @IBOutlet weak var answerButton1: UIButton!
   @IBOutlet weak var answerButton2: UIButton!
   @IBOutlet weak var answerButton3: UIButton!
-  
-  private var questions = [TriviaQuestion]()
+  @IBOutlet weak var feedbackLabel: UIButton!
+    
+    private var questions = [TriviaQuestion]()
   private var currQuestionIndex = 0
   private var numCorrectQuestions = 0
   
+  
+    
   override func viewDidLoad() {
     super.viewDidLoad()
     addGradient()
     questionContainerView.layer.cornerRadius = 8.0
-    // TODO: FETCH TRIVIA QUESTIONS HERE
+      TriviaQuestService.fetchQuestion() {questions in
+          self.questions = questions
+          self.updateQuestion(withQuestionIndex: 0)
+      }
+      
   }
   
   private func updateQuestion(withQuestionIndex questionIndex: Int) {
@@ -34,9 +41,17 @@ class TriviaViewController: UIViewController {
     let question = questions[questionIndex]
     questionLabel.text = question.question
     categoryLabel.text = question.category
+      
+    answerButton0.isHidden = true
+    answerButton1.isHidden = true
+    answerButton2.isHidden = true
+    answerButton3.isHidden = true
+    feedbackLabel.isHidden = true
+      
     let answers = ([question.correctAnswer] + question.incorrectAnswers).shuffled()
     if answers.count > 0 {
       answerButton0.setTitle(answers[0], for: .normal)
+        answerButton0.isHidden = false
     }
     if answers.count > 1 {
       answerButton1.setTitle(answers[1], for: .normal)
@@ -54,14 +69,26 @@ class TriviaViewController: UIViewController {
   
   private func updateToNextQuestion(answer: String) {
     if isCorrectAnswer(answer) {
+        feedbackLabel.setTitle("Correct!", for: .normal)
+        feedbackLabel.tintColor = UIColor.systemGreen
+
       numCorrectQuestions += 1
+    } else {
+        feedbackLabel.setTitle("Wrong!", for: .normal)
+        feedbackLabel.tintColor = UIColor.systemRed
+
     }
+      
     currQuestionIndex += 1
     guard currQuestionIndex < questions.count else {
       showFinalScore()
       return
     }
-    updateQuestion(withQuestionIndex: currQuestionIndex)
+      feedbackLabel.isHidden = false
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+          self.feedbackLabel.isHidden = true
+          self.updateQuestion(withQuestionIndex: self.currQuestionIndex)}
   }
   
   private func isCorrectAnswer(_ answer: String) -> Bool {
@@ -73,9 +100,13 @@ class TriviaViewController: UIViewController {
                                             message: "Final score: \(numCorrectQuestions)/\(questions.count)",
                                             preferredStyle: .alert)
     let resetAction = UIAlertAction(title: "Restart", style: .default) { [unowned self] _ in
-      currQuestionIndex = 0
-      numCorrectQuestions = 0
-      updateQuestion(withQuestionIndex: currQuestionIndex)
+        TriviaQuestService.fetchQuestion{ newQuestions in
+                        self.questions = newQuestions
+                        self.currQuestionIndex = 0
+                        self.numCorrectQuestions = 0
+                        self.updateQuestion(withQuestionIndex: self.currQuestionIndex)
+            
+        }
     }
     alertController.addAction(resetAction)
     present(alertController, animated: true, completion: nil)

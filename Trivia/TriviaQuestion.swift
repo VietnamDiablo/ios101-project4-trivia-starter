@@ -7,9 +7,23 @@
 
 import Foundation
 
-struct TriviaQuestion {
-  let category: String
-  let question: String
-  let correctAnswer: String
-  let incorrectAnswers: [String]
+
+// Check Postman response to view JSON struct
+struct TriviaQuestion: Decodable {
+    let category: String
+    let question: String
+    let correctAnswer: String
+    let incorrectAnswers: [String]
+    
+    
+    private enum CodingKeys: String, CodingKey {
+        case category
+        case question
+        case correctAnswer = "correct_answer"
+        case incorrectAnswers = "incorrect_answers"
+    }
 }
+    struct TriviaAPIResponse: Decodable {
+        let results: [TriviaQuestion]
+    }
+
